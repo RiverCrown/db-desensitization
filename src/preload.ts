@@ -1,5 +1,4 @@
 import { contextBridge } from 'electron';
+import { dbMetaInvoker } from '@/backend/controller/DBMetaController';
 
-contextBridge.exposeInMainWorld('myAPI', {
-  desktop: true,
-});
+contextBridge.exposeInMainWorld('dbMetaAPI', dbMetaInvoker);
