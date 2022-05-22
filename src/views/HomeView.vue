@@ -22,8 +22,23 @@ export default defineComponent({
   //   const a = 1;
   //   return
   // },
-  mounted() {
-    console.log(window.myAPI);
+  async mounted() {
+    const { dbMetaAPI } = window;
+    await dbMetaAPI.openDB({
+      host: '127.0.0.1',
+      port: 3306,
+      maxSize: 10,
+      password: 'root',
+      user: 'root',
+    });
+    const schemas = await dbMetaAPI.getAllSchema();
+    console.log(schemas);
+    const databases = await dbMetaAPI.getAllDatabase(schemas[0]);
+    console.log(databases);
+    const tables = await dbMetaAPI.getAllTable({ name: 'dynamic_table', schema: schemas[0] });
+    console.log(tables);
+    const fields = await dbMetaAPI.getAllField(tables[0]);
+    console.log(fields);
   },
 });
 </script>
