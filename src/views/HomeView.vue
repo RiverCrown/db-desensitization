@@ -31,7 +31,7 @@
               </el-icon>
             </div>
             <div v-if="node.level !== 1">
-              <el-tooltip placement="top-start">
+              <el-tooltip placement="bottom-start">
                 <template #content>
                   <pre>{{node.data}}</pre>
                 </template>
@@ -80,7 +80,18 @@
         </template>
       </el-dialog>
     </el-aside>
-    <el-main>Main</el-main>
+    <el-main>
+      <el-table :data="fieldsInSelectedTable">
+        <el-table-column prop="name" label="名称" />
+        <el-table-column prop="type" label="类型" />
+        <el-table-column prop="desc" label="描述" />
+        <el-table-column label="脱敏变换">
+          <template #default>
+            <el-input></el-input>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-main>
   </el-container>
 </template>
 
@@ -96,6 +107,11 @@ import {
 } from 'vue';
 import { IDBConfig, DBType, DB_TYPE_CONSTANTS } from '@/backend/db_config/DBConfigType';
 import '@/assets/iconfont/iconfont.css';
+import Node from 'element-plus/es/components/tree/src/model/node';
+import { TreeData } from 'element-plus/es/components/tree/src/tree.type';
+import {
+  IPoolConfig, ISchema, IDatabase, ITable, IField,
+} from '@/backend/db_meta/DBMetaType';
 
 export default defineComponent({
   name: 'HomeView',
@@ -128,22 +144,25 @@ export default defineComponent({
       dbConfigAPI.save(toRaw(dbConfigInDialog));
       closeDBConfigDialog();
     };
+    // 主界面
+    const fieldsInSelectedTable = ref([] as Array<IField>);
     // 数据库导航树
-    const expandDBNode = async (node: any, resolve: any) => {
+    const expandDBNode = async (node: Node, resolve: (data: TreeData) => void) => {
       switch (node.level) {
         // 数据库配置节点
         case 1:
-          await dbMetaAPI.openDB(toRaw(node.data));
+          await dbMetaAPI.openDB(toRaw(node.data) as IPoolConfig);
           return resolve(await dbMetaAPI.getAllSchema());
         // schema 节点
         case 2:
-          return resolve(await dbMetaAPI.getAllDatabase(toRaw(node.data)));
+          return resolve(await dbMetaAPI.getAllDatabase(toRaw(node.data) as ISchema));
         // database 节点
         case 3:
-          return resolve(await dbMetaAPI.getAllTable(toRaw(node.data)));
+          return resolve(await dbMetaAPI.getAllTable(toRaw(node.data) as IDatabase));
         // table 节点
         case 4:
-          return resolve(await dbMetaAPI.getAllField(toRaw(node.data)));
+          fieldsInSelectedTable.value = await dbMetaAPI.getAllField(toRaw(node.data) as ITable);
+          return resolve(fieldsInSelectedTable.value);
         default:
           return resolve([]);
       }
@@ -157,29 +176,9 @@ export default defineComponent({
       closeDBConfigDialog,
       confirmDBConfig,
       expandDBNode,
+      fieldsInSelectedTable,
     };
   },
-  // async mounted() {
-  //   const { dbMetaAPI } = window;
-  //   await dbMetaAPI.openDB({
-  //     host: '127.0.0.1',
-  //     port: 3306,
-  //     maxSize: 10,
-  //     password: 'root',
-  //     user: 'root',
-  //   });
-  //   const schemas = await dbMetaAPI.getAllSchema();
-  //   console.log(schemas);
-  //   const databases = await dbMetaAPI.getAllDatabase(schemas[0]);
-  //   console.log(databases);
-  //   const tables = await dbMetaAPI.getAllTable({
-  //     name: 'dynamic_table',
-  //     schema: schemas[0],
-  //   });
-  //   console.log(tables);
-  //   const fields = await dbMetaAPI.getAllField(tables[0]);
-  //   console.log(fields);
-  // },
 });
 </script>
 
