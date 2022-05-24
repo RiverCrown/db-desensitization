@@ -1,7 +1,7 @@
 import mysql, { Pool, RowDataPacket } from 'mysql2';
 import {
-  IDBMeta, IField, ISchema, IDatabase, ITable, DBType, IPoolConfig,
-} from '@/backend/DBInterface';
+  IDBMeta, IField, ISchema, IDatabase, ITable, DataType, IPoolConfig,
+} from '@/backend/db_meta/DBMetaType';
 
 let mysqlPool: Pool;
 

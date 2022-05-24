@@ -1,8 +1,7 @@
-import { ipcMain, ipcRenderer } from 'electron';
-import mysqlAPI from '@/backend/MySQLAPI';
+import { ipcRenderer } from 'electron';
 import {
   IDatabase, IField, IPoolConfig, ISchema, ITable,
-} from '@/backend/DBInterface';
+} from '@/backend/db_meta/DBMetaType';
 
 export interface IDBMetaAPI {
   openDB: (poolConfig: IPoolConfig) => Promise<void>;
@@ -10,33 +9,6 @@ export interface IDBMetaAPI {
   getAllDatabase: (schema: ISchema) => Promise<Array<IDatabase>>;
   getAllTable: (database: IDatabase) => Promise<Array<ITable>>;
   getAllField: (table: ITable) => Promise<Array<IField>>;
-}
-
-export function dbMetaHandler() {
-  ipcMain.handle(
-    'openDB',
-    (event, poolConfig) => mysqlAPI.initPool(poolConfig),
-  );
-
-  ipcMain.handle(
-    'getAllSchema',
-    () => mysqlAPI.getAllSchema(),
-  );
-
-  ipcMain.handle(
-    'getAllDatabase',
-    (event, schema) => mysqlAPI.getAllDatabase(schema),
-  );
-
-  ipcMain.handle(
-    'getAllTable',
-    (event, database) => mysqlAPI.getAllTable(database),
-  );
-
-  ipcMain.handle(
-    'getAllField',
-    (event, table) => mysqlAPI.getAllField(table),
-  );
 }
 
 export const dbMetaInvoker = {

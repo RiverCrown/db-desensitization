@@ -1,4 +1,4 @@
-export type DBType = 'STRING' | 'INT' | 'DECIMAL' | 'DATETIME'
+export type DataType = 'STRING' | 'INT' | 'DECIMAL' | 'DATETIME'
 
 export interface IPoolConfig {
   host: string;
@@ -28,7 +28,7 @@ export interface ITable {
 export interface IField {
   table: ITable;
   name: string;
-  type: DBType,
+  type: DataType,
   desc: string,
 }
 
