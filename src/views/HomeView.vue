@@ -1,7 +1,7 @@
 <template>
   <el-container>
     <el-aside>
-      <el-button type="primary" @click="openDBConfigDialog">
+      <el-button type="primary" @click="() => openDBConfigDialog('ADD')">
         +
       </el-button>
       <el-tree
@@ -23,10 +23,10 @@
           }">
             <div>{{ node.data.name }}</div>
             <div v-if="node.level === 1">
-              <el-icon class="el-icon--left" @click="() => openDBConfigDialog(node.data)">
+              <el-icon class="el-icon--left" @click="() => openDBConfigDialog('MODIFY', node.data)">
                 <span :class="`iconfont icon-edit`"></span>
               </el-icon>
-              <el-icon class="el-icon--left">
+              <el-icon class="el-icon--left" @click="() => removeDBConfig(node.data)">
                 <span :class="`iconfont icon-delete`"></span>
               </el-icon>
             </div>
@@ -112,18 +112,19 @@ import { TreeData } from 'element-plus/es/components/tree/src/tree.type';
 import {
   IPoolConfig, ISchema, IDatabase, ITable, IField,
 } from '@/backend/db_meta/DBMetaType';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 export default defineComponent({
   name: 'HomeView',
   setup(props, ctx) {
     const { dbMetaAPI, dbConfigAPI } = window;
     // 获取所有的数据库配置
-    const dbConfigs = reactive([] as Array<IDBConfig>);
+    const dbConfigs = ref([] as Array<IDBConfig>);
     onMounted(async () => {
-      dbConfigs.push(...(await dbConfigAPI.getAll()));
+      dbConfigs.value = await dbConfigAPI.getAll();
     });
     // 数据库连接配置对话框
-    const dbConfigInDialog = reactive({
+    const defaultDBConfig: IDBConfig = {
       name: '',
       desc: '',
       dbType: 'MYSQL' as DBType,
@@ -131,22 +132,63 @@ export default defineComponent({
       port: 3306,
       user: '',
       password: '',
-    } as IDBConfig);
+    };
+    const dbConfigInDialog = ref(defaultDBConfig);
+    const dbConfigDialogMode = ref('');
     const dbConfigDialogVisible = ref(false);
-    const openDBConfigDialog = (dbConfig: IDBConfig) => {
-      Object.assign(dbConfigInDialog, dbConfig);
+    const openDBConfigDialog = (mode: string, dbConfig: IDBConfig) => {
+      dbConfigDialogMode.value = mode;
+      switch (dbConfigDialogMode.value) {
+        case 'ADD':
+          dbConfigInDialog.value = defaultDBConfig;
+          break;
+        case 'MODIFY':
+          dbConfigInDialog.value = dbConfig;
+          break;
+        default:
+          break;
+      }
       dbConfigDialogVisible.value = true;
     };
     const closeDBConfigDialog = () => {
       dbConfigDialogVisible.value = false;
     };
-    const confirmDBConfig = () => {
-      dbConfigAPI.save(toRaw(dbConfigInDialog));
+    const confirmDBConfig = async () => {
+      switch (dbConfigDialogMode.value) {
+        case 'ADD':
+          await dbConfigAPI.save(toRaw(dbConfigInDialog.value));
+          break;
+        case 'MODIFY':
+          await dbConfigAPI.modify(toRaw(dbConfigInDialog.value));
+          break;
+        default:
+          break;
+      }
+      ElMessage.success('success');
+      dbConfigs.value = await dbConfigAPI.getAll();
       closeDBConfigDialog();
     };
     // 主界面
     const fieldsInSelectedTable = ref([] as Array<IField>);
     // 数据库导航树
+    const removeDBConfig = async (dbConfig: IDBConfig) => {
+      try {
+        await ElMessageBox.confirm(
+          'will delete permanently, continue?',
+          'Warning',
+          {
+            confirmButtonText: 'OK',
+            cancelButtonText: 'Cancel',
+            type: 'warning',
+          },
+        );
+        await dbConfigAPI.remove(toRaw(dbConfig));
+        ElMessage.success('delete db config successfully');
+        dbConfigs.value = await dbConfigAPI.getAll();
+      } catch (err) {
+        ElMessage.info('cancel');
+      }
+    };
     const expandDBNode = async (node: Node, resolve: (data: TreeData) => void) => {
       switch (node.level) {
         // 数据库配置节点
@@ -175,6 +217,7 @@ export default defineComponent({
       openDBConfigDialog,
       closeDBConfigDialog,
       confirmDBConfig,
+      removeDBConfig,
       expandDBNode,
       fieldsInSelectedTable,
     };

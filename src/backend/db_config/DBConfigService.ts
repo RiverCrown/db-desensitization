@@ -1,30 +1,56 @@
 import { ipcMain } from 'electron';
-import { writeFile, readFile } from 'fs/promises';
-
-const DB_CONFIG_FILE_PATH = './db_config.json';
+import { db } from '@/backend/DB';
+import { IDBConfig } from '@/backend/db_config/DBConfigType';
 
 export function dbConfigHandler() {
   ipcMain.handle(
     'getAll',
-    async () => {
-      const dbConfigBuffer = await readFile(DB_CONFIG_FILE_PATH);
-      return JSON.parse(dbConfigBuffer.toString());
-    },
+    async () => db.data?.dbConfig,
   );
 
   ipcMain.handle(
     'save',
-    async (event, dbConfig) => {
-      let dbConfigStr;
-      try {
-        dbConfigStr = (await readFile(DB_CONFIG_FILE_PATH)).toString();
-      } catch (err) {
-        console.log(err);
-        dbConfigStr = '[]';
+    async (event, newDBConfig: IDBConfig) => {
+      const isDuplicated = db.data?.dbConfig.some((dbConfig) => dbConfig.name === newDBConfig.name);
+      if (isDuplicated) {
+        return Promise.reject(new Error('duplicate db config'));
       }
-      const dbConfigs = JSON.parse(dbConfigStr);
-      dbConfigs.push(dbConfig);
-      await writeFile(DB_CONFIG_FILE_PATH, JSON.stringify(dbConfigs));
+      db.data?.dbConfig.push(newDBConfig);
+      return db.write();
+    },
+  );
+
+  ipcMain.handle(
+    'modify',
+    async (event, newDBConfig: IDBConfig) => {
+      let replaceIndex;
+      db.data?.dbConfig.forEach((dbConfig, index) => {
+        if (dbConfig.name === newDBConfig.name) {
+          replaceIndex = index;
+        }
+      });
+      if (replaceIndex !== undefined) {
+        db.data?.dbConfig.splice(replaceIndex, 1, newDBConfig);
+        return Promise.resolve();
+      }
+      return Promise.reject(new Error('can not find same db config to update'));
+    },
+  );
+
+  ipcMain.handle(
+    'remove',
+    async (event, removeDBConfig: IDBConfig) => {
+      let removeIndex;
+      db.data?.dbConfig.forEach((dbConfig, index) => {
+        if (dbConfig.name === removeDBConfig.name) {
+          removeIndex = index;
+        }
+      });
+      if (removeIndex !== undefined) {
+        db.data?.dbConfig.splice(removeIndex, 1);
+        return Promise.resolve();
+      }
+      return Promise.reject(new Error('can not delete db config with same name'));
     },
   );
 }

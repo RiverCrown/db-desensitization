@@ -13,10 +13,13 @@
     "postuninstall": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "@types/lowdb": "^1.0.11",
+    "@types/vue": "^2.0.0",
     "core-js": "^3.8.3",
     "electron": "^13.0.0",
     "electron-devtools-installer": "^3.1.0",
     "element-plus": "^2.1.7",
+    "lowdb": "^3.0.0",
     "mysql2": "^2.3.3",
     "vue": "^3.2.13",
     "vue-cli-plugin-electron-builder": "^3.0.0-alpha.4",

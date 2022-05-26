@@ -6,6 +6,7 @@ import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer';
 import * as path from 'path';
 import { dbMetaHandler } from '@/backend/db_meta/DBMetaService';
 import { dbConfigHandler } from '@/backend/db_config/DBConfigService';
+import { db } from '@/backend/DB';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -72,7 +73,7 @@ app.on('ready', async () => {
   // IPC 绑定
   dbMetaHandler();
   dbConfigHandler();
-  createWindow();
+  await createWindow();
 });
 
 // Exit cleanly on request from parent process in development mode.
