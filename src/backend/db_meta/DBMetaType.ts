@@ -19,7 +19,6 @@ export interface IDatabase {
 }
 
 export interface ITable {
-  schema: ISchema;
   database: IDatabase;
   name: string;
   desc: string;

@@ -57,7 +57,6 @@ const mysqlAPI: IDBMeta = {
             reject(err);
           } else {
             resolve(tables.map((table) => ({
-              schema: database.schema,
               database,
               name: table?.TABLE_NAME,
               desc: table?.TABLE_COMMENT,
@@ -77,8 +76,6 @@ const mysqlAPI: IDBMeta = {
             reject(err);
           } else {
             resolve(fields.map((field) => ({
-              schema: table.schema,
-              database: table.database,
               table,
               name: field.COLUMN_NAME,
               type: field.COLUMN_TYPE,

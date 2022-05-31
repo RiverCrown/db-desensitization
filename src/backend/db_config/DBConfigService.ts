@@ -31,7 +31,7 @@ export function dbConfigHandler() {
       });
       if (replaceIndex !== undefined) {
         db.data?.dbConfig.splice(replaceIndex, 1, newDBConfig);
-        return Promise.resolve();
+        return db.write();
       }
       return Promise.reject(new Error('can not find same db config to update'));
     },
@@ -48,7 +48,7 @@ export function dbConfigHandler() {
       });
       if (removeIndex !== undefined) {
         db.data?.dbConfig.splice(removeIndex, 1);
-        return Promise.resolve();
+        return db.write();
       }
       return Promise.reject(new Error('can not delete db config with same name'));
     },

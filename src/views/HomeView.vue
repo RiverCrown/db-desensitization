@@ -51,7 +51,7 @@
           <el-form-item label="描述">
             <el-input type="textarea" v-model="dbConfigInDialog.desc" />
           </el-form-item>
-          <el-form-item label="别名">
+          <el-form-item label="数据库类型">
             <el-select v-model="dbConfigInDialog.dbType">
               <el-option
                 v-for="dbType in DB_TYPE_CONSTANTS"
@@ -61,7 +61,7 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="服务器地址">
+          <el-form-item label="IP地址">
             <el-input v-model="dbConfigInDialog.host" />
           </el-form-item>
           <el-form-item label="端口">
@@ -81,13 +81,27 @@
       </el-dialog>
     </el-aside>
     <el-main>
-      <el-table :data="fieldsInSelectedTable">
-        <el-table-column prop="name" label="名称" />
-        <el-table-column prop="type" label="类型" />
-        <el-table-column prop="desc" label="描述" />
-        <el-table-column label="脱敏变换">
-          <template #default>
-            <el-input></el-input>
+      <el-table :data="dConfigsInTable">
+        <el-table-column prop="field.name" label="名称"/>
+        <el-table-column prop="field.type" label="类型"/>
+        <el-table-column prop="field.desc" label="描述"/>
+        <el-table-column>
+          <template #header>
+            脱敏变换公式
+            <el-tooltip
+              placement="top-start"
+              content="变换公式中 x 代表字段原先的值"
+            >
+              <el-icon class="el-icon--right">
+                <span :class="`iconfont icon-info-circle`"></span>
+              </el-icon>
+            </el-tooltip>
+          </template>
+          <template #default="{ row }">
+            <el-input
+              v-model="row.transformFormula"
+              @blur="() => upsertDConfig(row)"
+            />
           </template>
         </el-table-column>
       </el-table>
@@ -113,11 +127,12 @@ import {
   IPoolConfig, ISchema, IDatabase, ITable, IField,
 } from '@/backend/db_meta/DBMetaType';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { IDesensitizationConfig } from '@/backend/desensitization_config/DesensitizationConfigType';
 
 export default defineComponent({
   name: 'HomeView',
   setup(props, ctx) {
-    const { dbMetaAPI, dbConfigAPI } = window;
+    const { dbMetaAPI, dbConfigAPI, desensitizationConfigAPI } = window;
     // 获取所有的数据库配置
     const dbConfigs = ref([] as Array<IDBConfig>);
     onMounted(async () => {
@@ -164,29 +179,29 @@ export default defineComponent({
         default:
           break;
       }
-      ElMessage.success('success');
+      ElMessage.success('成功');
       dbConfigs.value = await dbConfigAPI.getAll();
       closeDBConfigDialog();
     };
     // 主界面
-    const fieldsInSelectedTable = ref([] as Array<IField>);
+    const dConfigsInTable = ref([] as Array<IDesensitizationConfig>);
     // 数据库导航树
     const removeDBConfig = async (dbConfig: IDBConfig) => {
       try {
         await ElMessageBox.confirm(
-          'will delete permanently, continue?',
-          'Warning',
+          '确认删除？',
+          '警告',
           {
-            confirmButtonText: 'OK',
-            cancelButtonText: 'Cancel',
+            confirmButtonText: '确认',
+            cancelButtonText: '取消',
             type: 'warning',
           },
         );
         await dbConfigAPI.remove(toRaw(dbConfig));
-        ElMessage.success('delete db config successfully');
+        ElMessage.success('删除成功');
         dbConfigs.value = await dbConfigAPI.getAll();
       } catch (err) {
-        ElMessage.info('cancel');
+        ElMessage.info('已取消');
       }
     };
     const expandDBNode = async (node: Node, resolve: (data: TreeData) => void) => {
@@ -202,12 +217,18 @@ export default defineComponent({
         case 3:
           return resolve(await dbMetaAPI.getAllTable(toRaw(node.data) as IDatabase));
         // table 节点
-        case 4:
-          fieldsInSelectedTable.value = await dbMetaAPI.getAllField(toRaw(node.data) as ITable);
-          return resolve(fieldsInSelectedTable.value);
+        case 4: {
+          const fieldsInTable = await dbMetaAPI.getAllField(toRaw(node.data) as ITable);
+          dConfigsInTable.value = await desensitizationConfigAPI.getByFields(fieldsInTable);
+          return resolve(fieldsInTable);
+        }
         default:
           return resolve([]);
       }
+    };
+    // 脱敏配置
+    const upsertDConfig = (dConfig: IDesensitizationConfig) => {
+      desensitizationConfigAPI.upsert(toRaw(dConfig));
     };
     return {
       DB_TYPE_CONSTANTS,
@@ -219,7 +240,8 @@ export default defineComponent({
       confirmDBConfig,
       removeDBConfig,
       expandDBNode,
-      fieldsInSelectedTable,
+      dConfigsInTable,
+      upsertDConfig,
     };
   },
 });
